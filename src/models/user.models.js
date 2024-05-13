@@ -63,13 +63,35 @@ userSchema.pre("save", function (next) {
   }
 });
 
-userSchema.methods.isPasswordCorrect = async function checkPassword(password) {
+userSchema.methods.isPasswordCorrect = async function (password) {
   try {
     const match = await bcrypt.compare(password, this.password);
     return match;
   } catch (error) {
     console.log("Error during checking the password, ", error);
   }
+};
+
+userSchema.methods.generateAccessToken = function () {
+  jwt.sign(
+    { _id: this._id, email: this.email, username: this.username },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY, algorithm: "RS512" },
+    function (err, token) {
+      if (err) {
+        console.error("Error while creating jwt", err);
+        return;
+      }
+      console.log("returning token");
+      return token;
+    }
+  );
+};
+
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+  });
 };
 
 export const User = mongoose.model("User", userSchema);
