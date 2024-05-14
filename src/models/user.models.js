@@ -41,21 +41,27 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
     },
-    refreshToken: {},
+    refreshToken: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
 
-userSchema.pre("save", function (next) {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
-    this.password = bcrypt.hash(this.password, saltRounds, (err, hash) => {
-      if (err) {
-        console.log("ERROR during encrypting password, ", err);
-        throw err;
+    this.password = await bcrypt.hash(
+      this.password,
+      saltRounds,
+      (err, hash) => {
+        if (err) {
+          console.log("ERROR during encrypting password, ", err);
+          throw err;
+        }
+        console.log(hash);
       }
-      console.log(hash);
-    });
+    );
     next();
   } catch (error) {
     console.log("ERROR during encrypting password:", err);
