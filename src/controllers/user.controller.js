@@ -32,9 +32,11 @@ export const registerUser = asyncHandler(async (req, res) => {
   if (existedUser) {
     throw new ApiErrors("User already Exists", 409);
   }
-  console.log("avatar: ", req?.files?.avatar);
+
   const avatarLocalPath = req?.files?.avatar[0]?.path;
+  console.log(avatarLocalPath);
   const coverImageLocalPath = req?.files?.coverImage[0]?.path;
+  console.log(coverImageLocalPath);
 
   if (!avatarLocalPath) {
     throw new ApiErrors("Avatar is required", 400);
