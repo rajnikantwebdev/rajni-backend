@@ -1,8 +1,8 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import ApiErrors from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import { uploadOnCloud } from "../utils/Cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { uploadOnCloud } from "../utils/cloudinary.js";
 
 export const registerUser = asyncHandler(async (req, res) => {
   // get the body
@@ -34,9 +34,9 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const avatarLocalPath = req?.files?.avatar[0]?.path;
-  console.log(avatarLocalPath);
+  console.log("avatar-local-path: ", avatarLocalPath);
   const coverImageLocalPath = req?.files?.coverImage[0]?.path;
-  console.log(coverImageLocalPath);
+  console.log("cover-image-local-path", coverImageLocalPath);
 
   if (!avatarLocalPath) {
     throw new ApiErrors("Avatar is required", 400);
