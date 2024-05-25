@@ -50,22 +50,13 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
+
   try {
-    this.password = await bcrypt.hash(
-      this.password,
-      saltRounds,
-      (err, hash) => {
-        if (err) {
-          console.log("ERROR during encrypting password, ", err);
-          throw err;
-        }
-        console.log(hash);
-      }
-    );
+    this.password = await bcrypt.hash(this.password, saltRounds);
     next();
   } catch (error) {
-    console.log("ERROR during encrypting password:", err);
-    next(err);
+    console.error("ERROR during encrypting password:", error);
+    next(error);
   }
 });
 
