@@ -34,8 +34,15 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const avatarLocalPath = req?.files?.avatar[0]?.path;
-  console.log("avatar-local-path: ", avatarLocalPath);
-  const coverImageLocalPath = req?.files?.coverImage[0]?.path;
+  let coverImageLocalPath;
+
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
   console.log("cover-image-local-path", coverImageLocalPath);
 
   if (!avatarLocalPath) {
@@ -43,9 +50,9 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const avatar = await uploadOnCloud(avatarLocalPath);
-  console.log("cloud-avatar: ", avatar);
+  // console.log("cloud-avatar: ", avatar);
   const coverImage = await uploadOnCloud(coverImageLocalPath);
-  console.log("cloud-coverimage: ", coverImage);
+  // console.log("cloud-coverimage: ", coverImage);
 
   if (!avatar) {
     throw new ApiErrors("Avatar is required", 400);
@@ -57,13 +64,13 @@ export const registerUser = asyncHandler(async (req, res) => {
     fullName,
     password,
     avatar: avatar.url,
-    coverImage: coverImage.url || "",
+    coverImage: coverImage?.url || "",
   });
 
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
-  console.log("created-user: ", createdUser);
+  // console.log("created-user: ", createdUser);
   if (!createdUser) {
     throw new ApiErrors("Something went wrong while registering the User", 500);
   }
