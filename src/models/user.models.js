@@ -70,20 +70,36 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 };
 
 userSchema.methods.generateAccessToken = function () {
-  jwt.sign(
-    { _id: this._id, email: this.email, username: this.username },
-    process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY, algorithm: "RS512" },
-    function (err, token) {
-      if (err) {
-        console.error("Error while creating jwt", err);
-        return;
+  console.log("id in user schema", this._id);
+  return new Promise((resolve, reject) => {
+    jwt.sign(
+      { _id: this._id, email: this.email },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRY },
+      function (err, token) {
+        if (err) {
+          return reject(err);
+        }
+        console.log("token generated");
+        resolve(token);
       }
-      console.log("returning token");
-      return token;
-    }
-  );
+    );
+  });
 };
+// userSchema.methods.generateAccessToken = function () {
+//   return jwt.sign(
+//     {
+//       _id: this._id,
+//       email: this.email,
+//       username: this.username,
+//       fullName: this.fullName,
+//     },
+//     process.env.ACCESS_TOKEN_SECRET,
+//     {
+//       expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+//     }
+//   );
+// };
 
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {

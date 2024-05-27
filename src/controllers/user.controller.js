@@ -3,6 +3,26 @@ import ApiErrors from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloud } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
+
+const generateAccessTokenAndRefreshToken = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    user.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
+  } catch (error) {
+    console.log(error);
+    throw new ApiErrors(
+      "Something went wrong while generating access and refresh token",
+      500
+    );
+  }
+};
 
 export const registerUser = asyncHandler(async (req, res) => {
   // get the body
@@ -77,4 +97,124 @@ export const registerUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, createdUser, "User Created successfully"));
+});
+
+export const loginUser = asyncHandler(async (req, res) => {
+  // check all the fields are filled
+  // username or email checking
+  // check if it exists
+  // validate it matches from the database
+  // generate a access token
+  // generate the refresh token
+  // send them in cookies
+  const { email, password } = req.body;
+
+  if ([email, password].some((value) => value.trim() === "")) {
+    throw new ApiErrors("All fields are required", 400);
+  }
+  const userExists = await User.findOne({ email });
+  if (!userExists) {
+    throw new ApiErrors("User doesn't exists", 404);
+  }
+
+  const validatePassword = await userExists.isPasswordCorrect(password);
+
+  if (!validatePassword) {
+    throw new ApiErrors("Invalid credentials", 401);
+  }
+
+  const { accessToken, refreshToken } =
+    await generateAccessTokenAndRefreshToken(userExists._id);
+
+  const loggedInUser = await User.findById(userExists._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "Successful Logged in"
+      )
+    );
+});
+
+export const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $unset: {
+        refreshToken: 1, // this removes the field from document
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged Out"));
+});
+
+export const refreshAccessToken = asyncHandler(async (req, res) => {
+  try {
+    const incomingRefreshToken =
+      req.cookies.refreshToken || req.body.refreshToken;
+    if (!incomingRefreshToken) {
+      throw new ApiErrors("Unauthorized access", 401);
+    }
+
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+    const user = await User.findById(decodedToken._id);
+    if (!user) {
+      throw new ApiErrors("Invalid Refresh token", 401);
+    }
+
+    if (user?.refreshToken !== incomingRefreshToken) {
+      throw new ApiErrors("Invalid Refresh token", 401);
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, newRefreshToken } =
+      await generateAccessTokenAndRefreshToken(user?._id);
+
+    return res
+      .status(200)
+      .cookie("refreshToken", newRefreshToken, options)
+      .cookie("accessToken", accessToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken: newRefreshToken },
+          "Token regenerated successfully"
+        )
+      );
+  } catch (error) {
+    console.log("error while refreshing token: ", error);
+    throw new ApiErrors("Something went wrong", 401);
+  }
 });
