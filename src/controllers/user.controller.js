@@ -45,9 +45,11 @@ export const registerUser = asyncHandler(async (req, res) => {
   if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/g.test(email)) {
     throw new ApiErrors("Invalid Email", 400);
   }
+
   const existedUser = await User.findOne({
     $or: [{ email: email }, { username: username }],
   });
+
   console.log("existed-user: ", existedUser);
   if (existedUser) {
     throw new ApiErrors("User already Exists", 409);
@@ -75,7 +77,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   // console.log("cloud-coverimage: ", coverImage);
 
   if (!avatar) {
-    throw new ApiErrors("Avatar is required", 400);
+    throw new ApiErrors("Unable to upload Avatar", 500);
   }
 
   const user = await User.create({
@@ -217,4 +219,87 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     console.log("error while refreshing token: ", error);
     throw new ApiErrors("Something went wrong", 401);
   }
+});
+
+export const changeUserCurrentPassword = asyncHandler(async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if ([oldPassword, newPassword].some((value) => value.trim() === "")) {
+      throw new ApiErrors("All fields are required", 401);
+    }
+
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+      throw new ApiErrors("Unauthorized access", 404);
+    }
+
+    const isOldPasswordValid = await user.isPasswordCorrect(oldPassword);
+    if (!isOldPasswordValid) {
+      throw new ApiErrors("Invalid Password", 401);
+    }
+
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Password Changed successfully"));
+  } catch (error) {
+    console.log("error while changing password", error);
+    throw new ApiErrors("Unable to change password try again later", 401);
+  }
+});
+
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  return res.status(200).json(new ApiResponse(200, req.user, "User found"));
+});
+
+export const updateAvatar = asyncHandler(async (req, res) => {
+  const newAvatar = req.file?.path;
+  if (!newAvatar) {
+    throw new ApiErrors("Avatar is required", 401);
+  }
+  console.log("new-avatar: ", newAvatar);
+
+  const newAvatarCloud = await uploadOnCloud(newAvatar);
+  if (!newAvatarCloud) {
+    throw new ApiErrors("Unable to update Avatar", 500);
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: newAvatarCloud?.url,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar updated successfully"));
+});
+
+export const updateCoverImage = asyncHandler(async (req, res) => {
+  const coverImage = req.file?.path;
+
+  if (!coverImage) {
+    throw new ApiErrors("Cover image is missing", 401);
+  }
+
+  const coverImageCloud = await uploadOnCloud(coverImage);
+  if (!coverImageCloud) {
+    throw new ApiErrors("Unable to update cover image try again later", 500);
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: { coverImage: coverImageCloud?.url } },
+    { new: true }
+  ).select("-password -refreshToken");
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Cover Image updated successfully"));
 });
