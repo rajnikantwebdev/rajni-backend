@@ -28,7 +28,13 @@ const userSchema = new mongoose.Schema(
       type: String, // cloudinary url
       required: true,
     },
+    avatarId: {
+      type: String,
+    },
     coverImage: {
+      type: String,
+    },
+    coverImageId: {
       type: String,
     },
     watchHistory: [

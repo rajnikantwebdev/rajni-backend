@@ -9,13 +9,12 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
       req.cookies.accessToken ||
       req.headers("Authorization")?.replace("Bearer ", "");
 
-    console.log("token: ", req.cookies);
     if (!token) {
       throw new ApiErrors("Unauthorized access", 401);
     }
 
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    console.log("decoded-token", decodedToken);
+    // console.log("decoded-token", decodedToken);
     const user = await User.findById(decodedToken._id).select(
       "-password -refreshToken"
     );
