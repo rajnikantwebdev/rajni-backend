@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from "mongoose";
+import { Schema, model } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const videoSchema = new Schema(
@@ -14,6 +14,7 @@ const videoSchema = new Schema(
     title: {
       type: String,
       required: true,
+      index: true,
     },
     description: {
       type: String,
@@ -36,9 +37,11 @@ const videoSchema = new Schema(
       ref: "User",
     },
   },
-  { timestamps: true }
+  { timestamps: true, autoIndex: false }
 );
 
+videoSchema.index({ title: "text" });
 videoSchema.plugin(mongooseAggregatePaginate);
 
 export const Video = model("Video", videoSchema);
+Video.createIndexes();
