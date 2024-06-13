@@ -317,7 +317,6 @@ export const updateCoverImage = asyncHandler(async (req, res) => {
 
 export const getChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  console.log("username: ", username);
   const channel = await User.aggregate([
     {
       $match: { username: username?.toLowerCase() },

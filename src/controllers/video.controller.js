@@ -80,3 +80,48 @@ export const publishVideo = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, { video }, "Video is uploaded Successfully"));
 });
+
+export const getVideoById = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  //find a video using it's id.
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiErrors("Unable to find the video", 500);
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video fetched successfully"));
+});
+
+export const updateVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  //TODO: update video details like title, description, thumbnail
+  const { title, description } = req.body;
+  console.log(req.body);
+  if ([title, description].some((value) => value.trim() == "")) {
+    throw new ApiErrors("All fields are required", 401);
+  }
+  const thumbnail = req?.files?.thumbnail?.[0]?.path;
+
+  if (!thumbnail) {
+    throw new ApiErrors("Thumbnail is required", 401);
+  }
+
+  const thumbnailUrl = await uploadOnCloud(thumbnail);
+  if (!thumbnailUrl) {
+    throw new ApiErrors("Unable to upload thumbnail, try again later", 401);
+  }
+
+  const updatedVideo = await Video.findOneAndUpdate(
+    { _id: videoId },
+    { title: title, description: description, thumbnail: thumbnail?.url },
+    {
+      new: true,
+    }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "Video updated successfully"));
+});
