@@ -18,31 +18,6 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    fullName: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true,
-    },
-    avatar: {
-      type: String, // cloudinary url
-      required: true,
-    },
-    avatarId: {
-      type: String,
-    },
-    coverImage: {
-      type: String,
-    },
-    coverImageId: {
-      type: String,
-    },
-    watchHistory: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Video",
-      },
-    ],
     password: {
       type: String,
       required: [true, "Password is required"],
