@@ -125,3 +125,53 @@ export const updateVideo = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, updatedVideo, "Video updated successfully"));
 });
+
+export const deleteVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  console.log("video id: ", videoId);
+
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiErrors("Unable to find video", 401);
+  }
+
+  const result = await Video.findByIdAndDelete(videoId);
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, result, "Video deleted succedssfully"));
+});
+
+export const toggleVideoStatus = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiErrors("Unable to find video", 401);
+  }
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        isPublished: !video.isPublished,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedVideo,
+        updatedVideo.isPublished
+          ? "Video Published Successfully"
+          : "Unpublished successfully"
+      )
+    );
+});
